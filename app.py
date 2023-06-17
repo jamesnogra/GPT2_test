@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Load pre-trained model and tokenizer
-model_name = 'gpt2-large'
+model_name = 'gpt2'
 tokenizer = GPT2Tokenizer.from_pretrained(model_name)
 model = GPT2LMHeadModel.from_pretrained(model_name)
 # Set seed for reproducibility
