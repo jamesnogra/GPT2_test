@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>GPT2 Simple Implementation</title>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="/static/bootstrap.min.css">
+	<script src="/static/jquery.min.js"></script>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<script>
+		function callGpt2() {
+			const input_text = $('#input-text').val()
+			if (input_text.length < 5) {
+				alert('Your question is too short...')
+				return
+			}
+			const form_data = new FormData()
+			form_data.append('input_text', input_text)
+			$('#input-text').val('')
+			$('#result').html('')
+			disableAskButton()
+			$.ajax({
+				url: '/model-api',
+				cache: false,
+				contentType: false,
+				processData: false,
+				data: form_data,
+				type: 'POST',
+				enctype: 'multipart/form-data',
+				success: function(data) {
+					$('#result').html(data)
+					enableAskButton()
+				}
+			})
+		}
+		function disableAskButton() {
+			// Disable submit button
+			$('#ask-button').attr('disabled', true)
+			$('#ask-button').html('Generating answers...')
+		}
+		function enableAskButton() {
+			// Disable submit button
+			$('#ask-button').attr('disabled', false)
+			$('#ask-button').html('Ask!')
+		}
+	</script>
+</head>
+<body>
+
+<div class="container">
+	<h1 class="text-center">Ask Any Question</h1>
+	<div class="text-center">
+		<input class="form-control" type="text" id="input-text" onChange="callGpt2();" />
+		<hr>
+		<button type="button" class="btn btn-success btn-lg" id="ask-button">Ask!</button>
+		<hr>
+		<div id="result"></div>
+	</div>
+</div>
+
+</body>
+</html>

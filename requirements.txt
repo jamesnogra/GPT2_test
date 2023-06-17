@@ -1,0 +1,6 @@
+flask
+flask-cors
+torch
+tokenizers
+transformers[torch]
+datasets
