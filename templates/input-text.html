@@ -35,7 +35,8 @@
 		function disableAskButton() {
 			// Disable submit button
 			$('#ask-button').attr('disabled', true)
-			$('#ask-button').html('Generating answers...')
+			$('#ask-button').html('Generating answer...')
+			$('#result').html('<img src="/static/loading.gif" />')
 		}
 		function enableAskButton() {
 			// Disable submit button

@@ -11,8 +11,8 @@ CORS(app)
 
 # Load pre-trained model and tokenizer
 model_name = 'gpt2'
-tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-model = GPT2LMHeadModel.from_pretrained(model_name)
+model = GPT2LMHeadModel.from_pretrained('fine-tuned-model')
+tokenizer = GPT2Tokenizer.from_pretrained('fine-tuned-model')
 # Set seed for reproducibility
 torch.manual_seed(42)
 
@@ -39,4 +39,4 @@ def model_api():
 	return generated_text
 
 if __name__ == '__main__':
-	app.run(debug=True, port='8085', host='0.0.0.0', use_reloader=True)
+	app.run(debug=True, port='8085', host='0.0.0.0', use_reloader=False)

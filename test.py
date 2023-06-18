@@ -1,28 +1,24 @@
+import os
 import torch
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
-
-# Load pre-trained model and tokenizer
-model_name = 'gpt2'
-tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-model = GPT2LMHeadModel.from_pretrained(model_name)
 
 # Set seed for reproducibility
 torch.manual_seed(42)
 
-# Encode input text
-input_text = "Is there a god?"
-input_ids = tokenizer.encode(input_text, return_tensors='pt')
+# Load the fine-tuned model and tokenizer
+model = GPT2LMHeadModel.from_pretrained('fine-tuned-model')
+tokenizer = GPT2Tokenizer.from_pretrained('fine-tuned-model')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model.to(device)
 
-# Generate text
-attention_mask = torch.ones_like(input_ids)
-output = model.generate(
-	input_ids,
-	attention_mask=attention_mask,
-	max_length=100,
-	num_return_sequences=1,
-	no_repeat_ngram_size=3
-)
+# Test a sentence from the text file
+test_sentence = "gibuhat sa Dios ang mga mananap sa yuta ingon"
 
-# Decode and print generated text
-generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
-print(generated_text)
+# Tokenize the input sentence
+input_ids = tokenizer.encode(test_sentence, add_special_tokens=True, return_tensors='pt').to(device)
+
+# Generate a response
+generated = model.generate(input_ids, max_length=64, num_return_sequences=1, pad_token_id=tokenizer.eos_token_id)
+decoded_output = tokenizer.decode(generated[0], skip_special_tokens=True)
+
+print(f"Generated output: \033[92m{decoded_output}\033[0m")
