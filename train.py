@@ -1,99 +1,76 @@
 import os
 import torch
-from torch.utils.data import Dataset, DataLoader
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, AdamW
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 torch.manual_seed(42)
 
-# Define your dataset class
-class MyDataset(Dataset):
-    def __init__(self, texts, tokenizer):
-        self.texts = texts
-        self.tokenizer = tokenizer
+def generate_text(model, tokenizer, prompt_text, max_length=32, temperature=0.7):
+    input_ids = tokenizer.encode(prompt_text, return_tensors='pt')
+    input_ids = input_ids.to(model.device)
 
-    def __len__(self):
-        return len(self.texts)
+    output = model.generate(
+        input_ids,
+        max_length=max_length,
+        temperature=temperature,
+        num_return_sequences=1,
+        pad_token_id=tokenizer.eos_token_id
+    )
 
-    def __getitem__(self, idx):
-        encoding = self.tokenizer.encode_plus(
-            self.texts[idx],
-            add_special_tokens=True,
-            truncation=True,
-            max_length=512,
-            padding='max_length',
-            return_tensors='pt'
-        )
-        return {
-            'input_ids': encoding['input_ids'].squeeze(),
-            'attention_mask': encoding['attention_mask'].squeeze(),
-            'labels': encoding['input_ids'].squeeze()
-        }
+    generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
+    return generated_text
 
-# Initialize the GPT-2 model and tokenizer
-model = GPT2LMHeadModel.from_pretrained('gpt2')
+# Set the path to your training data directory
+training_data_dir = 'texts'
+
+# Initialize the tokenizer and model
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+model = GPT2LMHeadModel.from_pretrained('gpt2')
 
-# Fine-tuning parameters
-batch_size = 1
-learning_rate = 1e-4
-epochs = 25
-
-# Prepare your training dataset
-# Directory path containing the text files
-directory_path = 'texts'
-# Read text files from the directory
-train_texts = []
-for filename in os.listdir(directory_path):
-    if filename.endswith('.txt'):
-        file_path = os.path.join(directory_path, filename)
-        with open(file_path, 'r', encoding='utf-8') as file:
-            text = file.read()
-            train_texts.append(text)
-train_dataset = MyDataset(train_texts, tokenizer)
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
-# Define the optimizer and the loss function
-optimizer = AdamW(model.parameters(), lr=learning_rate)
-loss_fn = torch.nn.CrossEntropyLoss()
-
-# Fine-tuning loop
+# Set the device to GPU if available, otherwise use CPU
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Using \033[92m{device}\033[0m for training...')
 model.to(device)
-model.train()
 
-for epoch in range(epochs):
-    total_loss = 0
-    for batch in train_loader:
-        input_ids = batch['input_ids'].to(device)
-        attention_mask = batch['attention_mask'].to(device)
-        labels = batch['labels'].to(device)
+# Load the training data from files in the directory
+training_data = ''
+for filename in os.listdir(training_data_dir):
+    file_path = os.path.join(training_data_dir, filename)
+    with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
+        training_data += file.read()
 
-        # Manually pad sequences to the same length
-        max_length = input_ids.shape[1]
-        input_ids = torch.nn.functional.pad(input_ids, pad=(0, max_length - input_ids.shape[1]), value=0)
-        attention_mask = torch.nn.functional.pad(attention_mask, pad=(0, max_length - attention_mask.shape[1]), value=0)
-        labels = torch.nn.functional.pad(labels, pad=(0, max_length - labels.shape[1]), value=-100)
+# Sliding window parameters
+window_size = 1024  # Adjust the window size as per your requirements
+stride = 1024  # Adjust the stride as per your requirements
 
-        optimizer.zero_grad()
-        outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
-        loss = outputs.loss
-        loss.backward()
-        optimizer.step()
+# Split the training data into overlapping segments
+segments = []
+start = 0
+while start < len(training_data):
+    end = min(start + window_size, len(training_data))
+    segments.append(training_data[start:end])
+    start += stride
 
-        total_loss += loss.item()
+# Fine-tune the model on the segments
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
+total_segments = len(segments)
 
-    average_loss = total_loss / len(train_loader)
-    print(f'Epoch {epoch + 1}/{epochs}, Loss: {average_loss:.4f}')
-
-    if (epoch+1) % 5 == 0:
-        # Test a sentence after each epoch
-        test_sentence = 'kahayag sa hawan sa langit aron sa pagbulag sa adlaw'
-        input_ids = tokenizer.encode(test_sentence, add_special_tokens=True, return_tensors='pt').to(device)
-        generated = model.generate(input_ids, max_length=32, num_return_sequences=1)
-        decoded_output = tokenizer.decode(generated[0], skip_special_tokens=True)
-        print(f"Generated output: \033[92m{decoded_output}\033[0m")
+# Fine-tune the model on the segments
+for i, segment in enumerate(segments, start=1):
+    inputs = tokenizer.encode(segment, return_tensors='pt')
+    inputs = inputs.to(device)
+    outputs = model(inputs, labels=inputs)
+    loss = outputs.loss
+    loss.backward()
+    optimizer.step()
+    model.zero_grad()
+    if i % 10 == 0:
+        # Print progress and loss during training
+        print(f"Segment {i}/{total_segments}")
+        print(f"Loss: {loss.item()}")
+        # Example usage: Generate text based on a prompt
+        prompt = "Si jehova kay"
+        generated_text = generate_text(model, tokenizer, prompt)
+        print(generated_text)
 
 # Save the fine-tuned model
 model.save_pretrained('fine-tuned-model')
