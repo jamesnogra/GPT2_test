@@ -6,8 +6,8 @@ from transformers import GPT2LMHeadModel, GPT2Tokenizer
 torch.manual_seed(42)
 
 # Load the fine-tuned model and tokenizer
-model = GPT2LMHeadModel.from_pretrained('fine-tuned-model')
-tokenizer = GPT2Tokenizer.from_pretrained('fine-tuned-model')
+model = GPT2LMHeadModel.from_pretrained('custom-fine-tuned-model')
+tokenizer = GPT2Tokenizer.from_pretrained('custom-fine-tuned-model')
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model.to(device)
 
