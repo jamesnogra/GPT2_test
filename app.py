@@ -11,8 +11,8 @@ CORS(app)
 
 # Load pre-trained model and tokenizer
 model_name = 'gpt2'
-model = GPT2LMHeadModel.from_pretrained('fine-tuned-model')
-tokenizer = GPT2Tokenizer.from_pretrained('fine-tuned-model')
+model = GPT2LMHeadModel.from_pretrained('custom-fine-tuned-model')
+tokenizer = GPT2Tokenizer.from_pretrained('custom-fine-tuned-model')
 # Set seed for reproducibility
 torch.manual_seed(42)
 
